@@ -13,10 +13,8 @@
  *	   language governing rights and limitations under the License.
  * 
  *	Copyright (c) 2002, 2007 Carlos Guzman Alvarez
+ *	Copyright (c) 2015 Jiri Cincura (jiri@cincura.net)
  *	All Rights Reserved.
- *   
- *  Contributors:
- *    Jiri Cincura (jiri@cincura.net)
  */
 
 using System;
@@ -27,6 +25,8 @@ using System.Text;
 using System.Globalization;
 
 using FirebirdSql.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FirebirdSql.Data.Client.Managed.Version10
 {
@@ -164,6 +164,12 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 			this.innerStream.Flush();
 		}
+		public override Task FlushAsync(CancellationToken cancellationToken)
+		{
+			this.CheckDisposed();
+
+			return this.innerStream.FlushAsync(cancellationToken);
+		}
 
 		public override void SetLength(long length)
 		{
@@ -205,6 +211,19 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 			if (this.CanWrite)
 			{
 				this.innerStream.Write(buffer, offset, count);
+			}
+			else
+			{
+				throw new InvalidOperationException("Write operations are not allowed by this stream");
+			}
+		}
+		public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+		{
+			this.CheckDisposed();
+
+			if (this.CanWrite)
+			{
+				return this.innerStream.WriteAsync(buffer, offset, count, cancellationToken);
 			}
 			else
 			{
@@ -500,6 +519,10 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 		{
 			this.WriteOpaque(buffer, buffer.Length);
 		}
+		public Task WriteOpaqueAsync(byte[] buffer, CancellationToken cancellationToken)
+		{
+			return this.WriteOpaqueAsync(buffer, buffer.Length, cancellationToken);
+		}
 
 		public void WriteOpaque(byte[] buffer, int length)
 		{
@@ -510,10 +533,23 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 				this.Write(Pad, 0, ((4 - length) & 3));
 			}
 		}
+		public async Task WriteOpaqueAsync(byte[] buffer, int length, CancellationToken cancellationToken)
+		{
+			if (buffer != null && length > 0)
+			{
+				await this.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+				await this.WriteAsync(Fill, 0, length - buffer.Length, cancellationToken).ConfigureAwait(false);
+				await this.WriteAsync(Pad, 0, ((4 - length) & 3), cancellationToken).ConfigureAwait(false);
+			}
+		}
 
 		public void WriteBuffer(byte[] buffer)
 		{
 			this.WriteBuffer(buffer, buffer == null ? 0 : buffer.Length);
+		}
+		public Task WriteBufferAsync(byte[] buffer, CancellationToken cancellationToken)
+		{
+			return this.WriteBufferAsync(buffer, buffer == null ? 0 : buffer.Length, cancellationToken);
 		}
 
 		public void WriteBuffer(byte[] buffer, int length)
@@ -524,6 +560,16 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 			{
 				this.Write(buffer, 0, length);
 				this.Write(Pad, 0, ((4 - length) & 3));
+			}
+		}
+		public async Task WriteBufferAsync(byte[] buffer, int length, CancellationToken cancellationToken)
+		{
+			await this.WriteAsync(length, cancellationToken).ConfigureAwait(false);
+
+			if (buffer != null && length > 0)
+			{
+				await this.WriteAsync(buffer, 0, length).ConfigureAwait(false);
+				await this.WriteAsync(Pad, 0, ((4 - length) & 3)).ConfigureAwait(false);
 			}
 		}
 
