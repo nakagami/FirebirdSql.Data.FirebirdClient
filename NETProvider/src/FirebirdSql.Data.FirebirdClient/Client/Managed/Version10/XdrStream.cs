@@ -320,6 +320,26 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 			return buffer;
 		}
+		public async Task<byte[]> ReadBytesAsync(int count, CancellationToken cancellationToken)
+		{
+			byte[] buffer = new byte[count];
+
+			if (count > 0)
+			{
+				int toRead = count;
+				int currentlyRead = -1;
+				while (toRead > 0 && currentlyRead != 0)
+				{
+					toRead -= (currentlyRead = await this.ReadAsync(buffer, count - toRead, toRead).ConfigureAwait(false));
+				}
+				if (toRead == count)
+				{
+					throw new IOException();
+				}
+			}
+
+			return buffer;
+		}
 
 		public byte[] ReadOpaque(int length)
 		{
@@ -333,31 +353,63 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 			return buffer;
 		}
+		public async Task<byte[]> ReadOpaqueAsync(int length, CancellationToken cancellationToken)
+		{
+			byte[] buffer = await this.ReadBytesAsync(length, cancellationToken).ConfigureAwait(false);
+
+			int padLength = ((4 - length) & 3);
+			if (padLength > 0)
+			{
+				await this.ReadAsync(Pad, 0, padLength, cancellationToken);
+			}
+
+			return buffer;
+		}
 
 		public byte[] ReadBuffer()
 		{
 			return this.ReadOpaque((ushort)this.ReadInt32());
+		}
+		public Task<byte[]> ReadBufferAsync(CancellationToken cancellationToken)
+		{
+			return this.ReadOpaqueAsync((ushort)this.ReadInt32(), cancellationToken);
 		}
 
 		public string ReadString()
 		{
 			return this.ReadString(this.charset);
 		}
+		public Task<string> ReadStringAsync(CancellationToken cancellationToken)
+		{
+			return this.ReadStringAsync(this.charset, cancellationToken);
+		}
 
 		public string ReadString(int length)
 		{
 			return this.ReadString(this.charset, length);
+		}
+		public Task<string> ReadStringAsync(int length, CancellationToken cancellationToken)
+		{
+			return this.ReadStringAsync(this.charset, length, cancellationToken);
 		}
 
 		public string ReadString(Charset charset)
 		{
 			return this.ReadString(charset, this.ReadInt32());
 		}
+		public Task<string> ReadStringAsync(Charset charset, CancellationToken cancellationToken)
+		{
+			return this.ReadStringAsync(charset, this.ReadInt32(), cancellationToken);
+		}
 
 		public string ReadString(Charset charset, int length)
 		{
 			byte[] buffer = this.ReadOpaque(length);
-
+			return charset.GetString(buffer, 0, buffer.Length);
+		}
+		public async Task<string> ReadStringAsync(Charset charset, int length, CancellationToken cancellationToken)
+		{
+			byte[] buffer = await this.ReadOpaqueAsync(length, cancellationToken).ConfigureAwait(false);
 			return charset.GetString(buffer, 0, buffer.Length);
 		}
 
@@ -365,30 +417,54 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 		{
 			return Convert.ToInt16(this.ReadInt32());
 		}
+		public async Task<short> ReadInt16Async(CancellationToken cancellationToken)
+		{
+			return Convert.ToInt16(await this.ReadInt32Async(cancellationToken).ConfigureAwait(false));
+		}
 
 		public int ReadInt32()
 		{
 			return IPAddress.HostToNetworkOrder(BitConverter.ToInt32(this.ReadBytes(4), 0));
+		}
+		public async Task<int> ReadInt32Async(CancellationToken cancellationToken)
+		{
+			return IPAddress.HostToNetworkOrder(BitConverter.ToInt32(await this.ReadBytesAsync(4, cancellationToken).ConfigureAwait(false), 0));
 		}
 
 		public long ReadInt64()
 		{
 			return IPAddress.HostToNetworkOrder(BitConverter.ToInt64(this.ReadBytes(8), 0));
 		}
+		public async Task<long> ReadInt64Async(CancellationToken cancellationToken)
+		{
+			return IPAddress.HostToNetworkOrder(BitConverter.ToInt64(await this.ReadBytesAsync(8, cancellationToken).ConfigureAwait(false), 0));
+		}
 
 		public Guid ReadGuid(int length)
 		{
 			return new Guid(this.ReadOpaque(length));
+		}
+		public async Task<Guid> ReadGuidAsync(int length, CancellationToken cancellationToken)
+		{
+			return new Guid(await this.ReadOpaqueAsync(length, cancellationToken).ConfigureAwait(false));
 		}
 
 		public float ReadSingle()
 		{
 			return BitConverter.ToSingle(BitConverter.GetBytes(this.ReadInt32()), 0);
 		}
+		public async Task<float> ReadSingleAsync(CancellationToken cancellationToken)
+		{
+			return BitConverter.ToSingle(BitConverter.GetBytes(await this.ReadInt32Async(cancellationToken).ConfigureAwait(false)), 0);
+		}
 
 		public double ReadDouble()
 		{
 			return BitConverter.ToDouble(BitConverter.GetBytes(this.ReadInt64()), 0);
+		}
+		public async Task<double> ReadDoubleAsync(CancellationToken cancellationToken)
+		{
+			return BitConverter.ToDouble(BitConverter.GetBytes(await this.ReadInt64Async(cancellationToken).ConfigureAwait(false)), 0);
 		}
 
 		public DateTime ReadDateTime()
@@ -398,15 +474,30 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 			return new DateTime(date.Year, date.Month, date.Day, time.Hours, time.Minutes, time.Seconds, time.Milliseconds);
 		}
+		public async Task<DateTime> ReadDateTimeAsync(CancellationToken cancellationToken)
+		{
+			DateTime date = await this.ReadDateAsync(cancellationToken).ConfigureAwait(false);
+			TimeSpan time = await this.ReadTimeAsync(cancellationToken).ConfigureAwait(false);
+
+			return new DateTime(date.Year, date.Month, date.Day, time.Hours, time.Minutes, time.Seconds, time.Milliseconds);
+		}
 
 		public DateTime ReadDate()
 		{
 			return TypeDecoder.DecodeDate(this.ReadInt32());
 		}
+		public async Task<DateTime> ReadDateAsync(CancellationToken cancellationToken)
+		{
+			return TypeDecoder.DecodeDate(await this.ReadInt32Async(cancellationToken).ConfigureAwait(false));
+		}
 
 		public TimeSpan ReadTime()
 		{
 			return TypeDecoder.DecodeTime(this.ReadInt32());
+		}
+		public async Task<TimeSpan> ReadTimeAsync(CancellationToken cancellationToken)
+		{
+			return TypeDecoder.DecodeTime(await this.ReadInt32Async(cancellationToken).ConfigureAwait(false));
 		}
 
 		public decimal ReadDecimal(int type, int scale)
@@ -431,6 +522,33 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 				case IscCodes.SQL_DOUBLE:
 				case IscCodes.SQL_D_FLOAT:
 					value = Convert.ToDecimal(this.ReadDouble());
+					break;
+			}
+
+			return value;
+		}
+		public async Task<decimal> ReadDecimalAsync(int type, int scale, CancellationToken cancellationToken)
+		{
+			decimal value = 0;
+
+			switch (type & ~1)
+			{
+				case IscCodes.SQL_SHORT:
+					value = TypeDecoder.DecodeDecimal(await this.ReadInt16Async(cancellationToken).ConfigureAwait(false), scale, type);
+					break;
+
+				case IscCodes.SQL_LONG:
+					value = TypeDecoder.DecodeDecimal(await this.ReadInt32Async(cancellationToken).ConfigureAwait(false), scale, type);
+					break;
+
+				case IscCodes.SQL_QUAD:
+				case IscCodes.SQL_INT64:
+					value = TypeDecoder.DecodeDecimal(await this.ReadInt64Async(cancellationToken).ConfigureAwait(false), scale, type);
+					break;
+
+				case IscCodes.SQL_DOUBLE:
+				case IscCodes.SQL_D_FLOAT:
+					value = Convert.ToDecimal(await this.ReadDoubleAsync(cancellationToken).ConfigureAwait(false));
 					break;
 			}
 
@@ -522,6 +640,105 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 			}
 
 			int sqlInd = this.ReadInt32();
+
+			if (sqlInd == 0)
+			{
+				return fieldValue;
+			}
+			else if (sqlInd == -1)
+			{
+				return null;
+			}
+			else
+			{
+				throw new IscException("invalid sqlind value: " + sqlInd);
+			}
+		}
+		public async Task<object> ReadValueAsync(DbField field, CancellationToken cancellationToken)
+		{
+			object fieldValue = null;
+			Charset innerCharset = (this.charset.Name != "NONE") ? this.charset : field.Charset;
+
+			switch (field.DbDataType)
+			{
+				case DbDataType.Char:
+					if (field.Charset.IsOctetsCharset)
+					{
+						fieldValue = await this.ReadOpaqueAsync(field.Length, cancellationToken).ConfigureAwait(false);
+					}
+					else
+					{
+						string s = await this.ReadStringAsync(innerCharset, field.Length, cancellationToken).ConfigureAwait(false);
+
+						if ((field.Length % field.Charset.BytesPerCharacter) == 0 &&
+							s.Length > field.CharCount)
+						{
+							fieldValue = s.Substring(0, field.CharCount);
+						}
+						else
+						{
+							fieldValue = s;
+						}
+					}
+					break;
+
+				case DbDataType.VarChar:
+					if (field.Charset.IsOctetsCharset)
+					{
+						fieldValue = await this.ReadBufferAsync(cancellationToken).ConfigureAwait(false);
+					}
+					else
+					{
+						fieldValue = await this.ReadStringAsync(innerCharset, cancellationToken).ConfigureAwait(false);
+					}
+					break;
+
+				case DbDataType.SmallInt:
+					fieldValue = await this.ReadInt16Async(cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.Integer:
+					fieldValue = await this.ReadInt32Async(cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.Array:
+				case DbDataType.Binary:
+				case DbDataType.Text:
+				case DbDataType.BigInt:
+					fieldValue = await this.ReadInt64Async(cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.Decimal:
+				case DbDataType.Numeric:
+					fieldValue = await this.ReadDecimalAsync(field.DataType, field.NumericScale, cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.Float:
+					fieldValue = await this.ReadSingleAsync(cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.Guid:
+					fieldValue = await this.ReadGuidAsync(field.Length, cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.Double:
+					fieldValue = await this.ReadDoubleAsync(cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.Date:
+					fieldValue = await this.ReadDateAsync(cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.Time:
+					fieldValue = await this.ReadTimeAsync(cancellationToken).ConfigureAwait(false);
+					break;
+
+				case DbDataType.TimeStamp:
+					fieldValue = await this.ReadDateTimeAsync(cancellationToken).ConfigureAwait(false);
+					break;
+			}
+
+			int sqlInd = await this.ReadInt32Async(cancellationToken).ConfigureAwait(false);
 
 			if (sqlInd == 0)
 			{
