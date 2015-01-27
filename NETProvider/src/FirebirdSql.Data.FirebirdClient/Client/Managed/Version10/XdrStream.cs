@@ -18,15 +18,11 @@
  */
 
 using System;
-using System.Collections;
 using System.IO;
 using System.Net;
-using System.Text;
-using System.Globalization;
-
-using FirebirdSql.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using FirebirdSql.Data.Common;
 
 namespace FirebirdSql.Data.Client.Managed.Version10
 {
@@ -185,6 +181,18 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 			return this.innerStream.Seek(offset, loc);
 		}
 
+		public override int ReadByte()
+		{
+			this.CheckDisposed();
+
+			if (this.CanRead)
+			{
+				return this.innerStream.ReadByte();
+			}
+
+			throw new InvalidOperationException("Read operations are not allowed by this stream");
+		}
+
 		public override int Read(byte[] buffer, int offset, int count)
 		{
 			this.CheckDisposed();
@@ -212,7 +220,14 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 		{
 			this.CheckDisposed();
 
-			this.innerStream.WriteByte(value);
+			if (this.CanWrite)
+			{
+				this.innerStream.WriteByte(value);
+			}
+			else
+			{
+				throw new InvalidOperationException("Write operations are not allowed by this stream");
+			}
 		}
 
 		public override void Write(byte[] buffer, int offset, int count)
