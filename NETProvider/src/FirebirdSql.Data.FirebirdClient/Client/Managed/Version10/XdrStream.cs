@@ -288,7 +288,7 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 				 * throwing	them away--note	that if	we are a server	we won't
 				 * be receiving	them, but it is	better to check	for	them at
 				 * this	level rather than try to catch them	in all places where
-				 * this	routine	is called 
+				 * this	routine	is called
 				 */
 				this.operation = this.ReadInt32();
 			} while (this.operation == IscCodes.op_dummy);
