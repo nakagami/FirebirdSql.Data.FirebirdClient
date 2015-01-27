@@ -17,7 +17,8 @@
  */
 
 using System;
-
+using System.Threading;
+using System.Threading.Tasks;
 using FirebirdSql.Data.Common;
 using FirebirdSql.Data.FirebirdClient;
 
@@ -57,17 +58,14 @@ namespace FirebirdSql.Data.Services
 			{
 				this.StartSpb = new ServiceParameterBuffer();
 
-				// Configure Spb
 				this.StartSpb.Append(IscCodes.isc_action_svc_db_stats);
 				this.StartSpb.Append(IscCodes.isc_spb_dbname, this.Database);
 				this.StartSpb.Append(IscCodes.isc_spb_options, (int)this.options);
 
 				this.Open();
 
-				// Start execution
 				this.StartTask();
 
-				// Process service output
 				this.ProcessServiceOutput();
 			}
 			catch (Exception ex)
@@ -77,6 +75,31 @@ namespace FirebirdSql.Data.Services
 			finally
 			{
 				this.Close();
+			}
+		}
+		public async Task ExecuteAsync(CancellationToken cancellationToken)
+		{
+			try
+			{
+				this.StartSpb = new ServiceParameterBuffer();
+
+				this.StartSpb.Append(IscCodes.isc_action_svc_db_stats);
+				this.StartSpb.Append(IscCodes.isc_spb_dbname, this.Database);
+				this.StartSpb.Append(IscCodes.isc_spb_options, (int)this.options);
+
+				await this.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+				this.StartTask();
+
+				await this.ProcessServiceOutputAsync(cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				throw new FbException(ex.Message, ex);
+			}
+			finally
+			{
+				this.CloseAsync(cancellationToken).Wait_ReplaceMeOnCSharp6();
 			}
 		}
 
