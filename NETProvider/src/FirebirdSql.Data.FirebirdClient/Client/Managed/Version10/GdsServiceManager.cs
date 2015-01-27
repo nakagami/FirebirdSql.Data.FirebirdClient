@@ -91,8 +91,7 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 				await this.database.WriteBufferAsync(spb.ToArray(), cancellationToken).ConfigureAwait(false);
 				await this.database.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-#warning Async
-				response = this.database.ReadGenericResponse();
+				response = await this.database.ReadGenericResponseAsync(cancellationToken).ConfigureAwait(false);
 
 				this.handle = response.ObjectHandle;
 			}
@@ -156,6 +155,7 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 			{
 				try
 				{
+#warning Async
 					this.connection.Disconnect();
 				}
 				catch (IOException)
@@ -206,8 +206,7 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 				try
 				{
-#warning Async
-					this.database.ReadResponse();
+					await this.database.ReadResponseAsync(cancellationToken).ConfigureAwait(false);
 				}
 				catch (IscException)
 				{
@@ -262,8 +261,7 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 				await this.database.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-#warning Async
-				GenericResponse response = this.database.ReadGenericResponse();
+				GenericResponse response = await this.database.ReadGenericResponseAsync(cancellationToken).ConfigureAwait(false);
 
 				int responseLength = bufferLength;
 
