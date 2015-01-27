@@ -133,6 +133,10 @@ namespace FirebirdSql.Data.Client.Native
 			// Parse status	vector
 			this.ParseStatusVector(this.statusVector);
 		}
+		public Task StartAsync(ServiceParameterBuffer spb, CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
 
 		public void Query(ServiceParameterBuffer spb, int requestLength, byte[] requestBuffer, int bufferLength, byte[] buffer)
 		{

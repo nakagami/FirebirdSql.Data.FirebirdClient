@@ -110,6 +110,10 @@ namespace FirebirdSql.Data.Client.ExternalEngine
 			// Parse status	vector
 			this.ParseStatusVector(statusVector);
 		}
+		public Task StartAsync(ServiceParameterBuffer spb, CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
 
 		public void Query(ServiceParameterBuffer spb, int requestLength, byte[] requestBuffer, int bufferLength, byte[] buffer)
 		{

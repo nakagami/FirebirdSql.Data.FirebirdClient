@@ -172,29 +172,51 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 		public void Start(ServiceParameterBuffer spb)
 		{
-			lock (this)
+			try
 			{
+				this.database.Write(IscCodes.op_service_start);
+				this.database.Write(this.Handle);
+				this.database.Write(0);
+				this.database.WriteBuffer(spb.ToArray(), spb.Length);
+				this.database.Flush();
+
 				try
 				{
-					this.database.Write(IscCodes.op_service_start);
-					this.database.Write(this.Handle);
-					this.database.Write(0);
-					this.database.WriteBuffer(spb.ToArray(), spb.Length);
-					this.database.Flush();
-
-					try
-					{
-						this.database.ReadResponse();
-					}
-					catch (IscException)
-					{
-						throw;
-					}
+					this.database.ReadResponse();
 				}
-				catch (IOException)
+				catch (IscException)
 				{
-					throw new IscException(IscCodes.isc_net_write_err);
+					throw;
 				}
+			}
+			catch (IOException)
+			{
+				throw new IscException(IscCodes.isc_net_write_err);
+			}
+		}
+		public async Task StartAsync(ServiceParameterBuffer spb, CancellationToken cancellationToken)
+		{
+			try
+			{
+				await this.database.WriteAsync(IscCodes.op_service_start, cancellationToken).ConfigureAwait(false);
+				await this.database.WriteAsync(this.Handle, cancellationToken).ConfigureAwait(false);
+				await this.database.WriteAsync(0, cancellationToken).ConfigureAwait(false);
+				await this.database.WriteBufferAsync(spb.ToArray(), spb.Length, cancellationToken).ConfigureAwait(false);
+				await this.database.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+				try
+				{
+#warning Async
+					this.database.ReadResponse();
+				}
+				catch (IscException)
+				{
+					throw;
+				}
+			}
+			catch (IOException)
+			{
+				throw new IscException(IscCodes.isc_net_write_err);
 			}
 		}
 

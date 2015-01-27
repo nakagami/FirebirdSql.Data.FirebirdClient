@@ -89,7 +89,7 @@ namespace FirebirdSql.Data.Services
 
 				await this.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-				this.StartTask();
+				await this.StartTaskAsync(cancellationToken).ConfigureAwait(false);
 
 				await this.ProcessServiceOutputAsync(cancellationToken).ConfigureAwait(false);
 			}

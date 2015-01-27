@@ -43,7 +43,7 @@ namespace FirebirdSql.Data.Common
 		Task DetachAsync(CancellationToken cancellationToken);
 
 		void Start(ServiceParameterBuffer spb);
-		//Task StartAsync(ServiceParameterBuffer spb);
+		Task StartAsync(ServiceParameterBuffer spb, CancellationToken cancellationToken);
 
 		void Query(ServiceParameterBuffer spb, int requestLength, byte[] requestBuffer, int bufferLength, byte[] buffer);
 		Task QueryAsync(ServiceParameterBuffer spb, int requestLength, byte[] requestBuffer, int bufferLength, byte[] buffer, CancellationToken cancellationToken);

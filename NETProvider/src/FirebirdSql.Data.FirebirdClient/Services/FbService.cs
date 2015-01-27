@@ -224,18 +224,26 @@ namespace FirebirdSql.Data.Services
 			}
 		}
 
-#warning Async
 		protected void StartTask()
 		{
-			if (this.state == FbServiceState.Closed)
-			{
-				throw new InvalidOperationException("Service is Closed.");
-			}
+			EnsureStartTask();
 
 			try
 			{
-				// Start service operation
 				this.svc.Start(this.StartSpb);
+			}
+			catch (Exception ex)
+			{
+				throw new FbException(ex.Message, ex);
+			}
+		}
+		protected async Task StartTaskAsync(CancellationToken cancellationToken)
+		{
+			EnsureStartTask();
+
+			try
+			{
+				await this.svc.StartAsync(this.StartSpb, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
@@ -660,6 +668,14 @@ namespace FirebirdSql.Data.Services
 			if (this.csManager.Password == null || this.csManager.Password.Length == 0)
 			{
 				throw new InvalidOperationException("No user password was specified.");
+			}
+		}
+
+		private void EnsureStartTask()
+		{
+			if (this.state == FbServiceState.Closed)
+			{
+				throw new InvalidOperationException("Service is Closed.");
 			}
 		}
 
