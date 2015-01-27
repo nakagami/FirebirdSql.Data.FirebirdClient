@@ -510,7 +510,7 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 				try
 				{
 					events.LocalId = Interlocked.Increment(ref this.eventsId);
-					
+
 					// Enqueue events in the event manager
 					this.eventManager.QueueEvents(events);
 
@@ -814,9 +814,6 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 			}
 		}
 
-		/// <summary>
-		/// isc_database_info
-		/// </summary>
 		private void DatabaseInfo(byte[] items, byte[] buffer, int bufferLength)
 		{
 			lock (this.SyncObject)
@@ -867,90 +864,162 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 		{
 			return this.inputStream.ReadBytes(count);
 		}
+		public Task<byte[]> ReadBytesAsync(int count, CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadBytesAsync(count, cancellationToken);
+		}
 
 		public byte[] ReadOpaque(int length)
 		{
 			return this.inputStream.ReadOpaque(length);
+		}
+		public Task<byte[]> ReadOpaqueAsync(int length, CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadOpaqueAsync(length, cancellationToken);
 		}
 
 		public byte[] ReadBuffer()
 		{
 			return this.inputStream.ReadBuffer();
 		}
+		public Task<byte[]> ReadBufferAsync(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadBufferAsync(cancellationToken);
+		}
 
 		public string ReadString()
 		{
 			return this.inputStream.ReadString();
+		}
+		public Task<string> ReadStringAsync(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadStringAsync(cancellationToken);
 		}
 
 		public string ReadString(int length)
 		{
 			return this.inputStream.ReadString(length);
 		}
+		public Task<string> ReadStringAsync(int length, CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadStringAsync(length, cancellationToken);
+		}
 
 		public string ReadString(Charset charset)
 		{
 			return this.inputStream.ReadString(charset);
+		}
+		public Task<string> ReadStringAsync(Charset charset, CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadStringAsync(charset, cancellationToken);
 		}
 
 		public string ReadString(Charset charset, int length)
 		{
 			return this.inputStream.ReadString(charset, length);
 		}
+		public Task<string> ReadStringAsync(Charset charset, int length, CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadStringAsync(charset, length, cancellationToken);
+		}
 
 		public short ReadInt16()
 		{
 			return this.inputStream.ReadInt16();
+		}
+		public Task<short> ReadInt16Async(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadInt16Async(cancellationToken);
 		}
 
 		public int ReadInt32()
 		{
 			return this.inputStream.ReadInt32();
 		}
+		public Task<int> ReadInt32Async(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadInt32Async(cancellationToken);
+		}
 
 		public long ReadInt64()
 		{
 			return this.inputStream.ReadInt64();
+		}
+		public Task<long> ReadInt64Async(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadInt64Async(cancellationToken);
 		}
 
 		public Guid ReadGuid(int length)
 		{
 			return this.inputStream.ReadGuid(length);
 		}
+		public Task<Guid> ReadGuidAsync(int length, CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadGuidAsync(length, cancellationToken);
+		}
 
 		public float ReadSingle()
 		{
 			return this.inputStream.ReadSingle();
+		}
+		public Task<float> ReadSingleAsync(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadSingleAsync(cancellationToken);
 		}
 
 		public double ReadDouble()
 		{
 			return this.inputStream.ReadDouble();
 		}
+		public Task<double> ReadDoubleAsync(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadDoubleAsync(cancellationToken);
+		}
 
 		public DateTime ReadDateTime()
 		{
 			return this.inputStream.ReadDateTime();
+		}
+		public Task<DateTime> ReadDateTimeAsync(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadDateTimeAsync(cancellationToken);
 		}
 
 		public DateTime ReadDate()
 		{
 			return this.inputStream.ReadDate();
 		}
+		public Task<DateTime> ReadDateAsync(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadDateAsync(cancellationToken);
+		}
 
 		public TimeSpan ReadTime()
 		{
 			return this.inputStream.ReadTime();
+		}
+		public Task<TimeSpan> ReadTimeAsync(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadTimeAsync(cancellationToken);
 		}
 
 		public decimal ReadDecimal(int type, int scale)
 		{
 			return this.inputStream.ReadDecimal(type, scale);
 		}
+		public Task<decimal> ReadDecimalAsync(int type, int scale, CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadDecimalAsync(type, scale, cancellationToken);
+		}
 
 		public object ReadValue(DbField field)
 		{
 			return this.inputStream.ReadValue(field);
+		}
+		public Task<object> ReadValueAsync(DbField field, CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadValueAsync(field, cancellationToken);
 		}
 
 		#endregion
