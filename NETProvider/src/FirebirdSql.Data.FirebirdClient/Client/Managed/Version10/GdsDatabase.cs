@@ -666,10 +666,18 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 		{
 			return this.inputStream.ReadOperation();
 		}
+		public virtual Task<int> ReadOperationAsync(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadOperationAsync(cancellationToken);
+		}
 
 		public virtual int NextOperation()
 		{
 			return this.inputStream.ReadNextOperation();
+		}
+		public virtual Task<int> NextOperation(CancellationToken cancellationToken)
+		{
+			return this.inputStream.ReadNextOperationAsync(cancellationToken);
 		}
 
 		public virtual IResponse ReadResponse()
@@ -683,10 +691,25 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 			return response;
 		}
+		public virtual async Task<IResponse> ReadResponseAsync(CancellationToken cancellationToken)
+		{
+			IResponse response = await this.ReadSingleResponseAsync(cancellationToken).ConfigureAwait(false);
+
+			if (response is GenericResponse)
+			{
+				this.ProcessResponse(response);
+			}
+
+			return response;
+		}
 
 		public virtual GenericResponse ReadGenericResponse()
 		{
 			return (GenericResponse)this.ReadResponse();
+		}
+		public virtual async Task<GenericResponse> ReadGenericResponseAsync(CancellationToken cancellationToken)
+		{
+			return (GenericResponse)await this.ReadResponseAsync(cancellationToken).ConfigureAwait(false);
 		}
 
 		public virtual SqlResponse ReadSqlResponse()
@@ -754,6 +777,66 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 			return exception;
 		}
+		public virtual async Task<IscException> ReadStatusVectorAsync(CancellationToken cancellationToken)
+		{
+			IscException exception = null;
+			bool eof = false;
+
+			while (!eof)
+			{
+				int arg = await this.ReadInt32Async(cancellationToken).ConfigureAwait(false);
+
+				switch (arg)
+				{
+					case IscCodes.isc_arg_gds:
+						int er = await this.ReadInt32Async(cancellationToken).ConfigureAwait(false);
+						if (er != 0)
+						{
+							if (exception == null)
+							{
+								exception = new IscException();
+							}
+							exception.Errors.Add(new IscError(arg, er));
+						}
+						break;
+
+					case IscCodes.isc_arg_end:
+						if (exception != null && exception.Errors.Count != 0)
+						{
+							exception.BuildExceptionData();
+						}
+						eof = true;
+						break;
+
+					case IscCodes.isc_arg_interpreted:
+					case IscCodes.isc_arg_string:
+						exception.Errors.Add(new IscError(arg, await this.ReadStringAsync(cancellationToken).ConfigureAwait(false)));
+						break;
+
+					case IscCodes.isc_arg_number:
+						exception.Errors.Add(new IscError(arg, await this.ReadInt32Async(cancellationToken).ConfigureAwait(false)));
+						break;
+
+					case IscCodes.isc_arg_sql_state:
+						exception.Errors.Add(new IscError(arg, await this.ReadStringAsync(cancellationToken).ConfigureAwait(false)));
+						break;
+
+					default:
+						int e = await this.ReadInt32Async(cancellationToken).ConfigureAwait(false);
+						if (e != 0)
+						{
+							if (exception == null)
+							{
+								exception = new IscException();
+							}
+							exception.Errors.Add(new IscError(arg, e));
+						}
+						break;
+				}
+			}
+
+			return exception;
+		}
 
 		public virtual void SetOperation(int operation)
 		{
@@ -791,6 +874,16 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 			return response;
 		}
+		protected virtual async Task<IResponse> ReadSingleResponseAsync(CancellationToken cancellationToken)
+		{
+			int operation = await this.ReadOperationAsync(cancellationToken).ConfigureAwait(false);
+
+			IResponse response = await ProcessOperationAsync(operation, cancellationToken).ConfigureAwait(false);
+
+			ProcessResponseWarnings(response);
+
+			return response;
+		}
 
 		protected virtual IResponse ProcessOperation(int operation)
 		{
@@ -808,6 +901,27 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 
 				case IscCodes.op_sql_response:
 					return new SqlResponse(this.ReadInt32());
+
+				default:
+					return null;
+			}
+		}
+		protected virtual async Task<IResponse> ProcessOperationAsync(int operation, CancellationToken cancellationToken)
+		{
+			switch (operation)
+			{
+				case IscCodes.op_response:
+					return new GenericResponse(
+						await this.ReadInt32Async(cancellationToken).ConfigureAwait(false),
+						await this.ReadInt64Async(cancellationToken).ConfigureAwait(false),
+						await this.ReadBufferAsync(cancellationToken).ConfigureAwait(false),
+						await this.ReadStatusVectorAsync(cancellationToken).ConfigureAwait(false));
+
+				case IscCodes.op_fetch_response:
+					return new FetchResponse(await this.ReadInt32Async(cancellationToken).ConfigureAwait(false), await this.ReadInt32Async(cancellationToken).ConfigureAwait(false));
+
+				case IscCodes.op_sql_response:
+					return new SqlResponse(await this.ReadInt32Async(cancellationToken).ConfigureAwait(false));
 
 				default:
 					return null;
