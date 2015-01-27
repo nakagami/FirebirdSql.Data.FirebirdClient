@@ -13,10 +13,8 @@
  *	   language governing rights and limitations under the License.
  * 
  *	Copyright (c) 2002, 2007 Carlos Guzman Alvarez
+ *	Copyright (c) 2015 Jiri Cincura (jiri@cincura.net)
  *	All Rights Reserved.
- * 
- *  Contributors:
- *   Jiri Cincura (jiri@cincura.net)
  */
 
 using System;
@@ -25,7 +23,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
-
+using System.Threading;
+using System.Threading.Tasks;
 using FirebirdSql.Data.Common;
 using FirebirdSql.Data.FirebirdClient;
 
@@ -143,20 +142,7 @@ namespace FirebirdSql.Data.Services
 
 		protected void Open()
 		{
-			if (this.state != FbServiceState.Closed)
-			{
-				throw new InvalidOperationException("Service already Open.");
-			}
-
-			if (this.csManager.UserID == null || this.csManager.UserID.Length == 0)
-			{
-				throw new InvalidOperationException("No user name was specified.");
-			}
-
-			if (this.csManager.Password == null || this.csManager.Password.Length == 0)
-			{
-				throw new InvalidOperationException("No user password was specified.");
-			}
+			EnsureOpen();
 
 			try
 			{
@@ -168,6 +154,28 @@ namespace FirebirdSql.Data.Services
 
 				// Initialize Services API
 				this.svc.Attach(this.BuildSpb(), this.csManager.DataSource, this.csManager.Port, this.serviceName);
+
+				this.state = FbServiceState.Open;
+			}
+			catch (Exception ex)
+			{
+				throw new FbException(ex.Message, ex);
+			}
+		}
+		protected async Task OpenAsync(CancellationToken cancellationToken)
+		{
+			EnsureOpen();
+
+			try
+			{
+				if (this.svc == null)
+				{
+					// New instance	for	Service	handler
+					this.svc = ClientFactory.CreateServiceManager(this.csManager);
+				}
+
+				// Initialize Services API
+				await this.svc.AttachAsync(this.BuildSpb(), this.csManager.DataSource, this.csManager.Port, this.serviceName, cancellationToken).ConfigureAwait(false);
 
 				this.state = FbServiceState.Open;
 			}
@@ -196,7 +204,27 @@ namespace FirebirdSql.Data.Services
 				throw new FbException(ex.Message, ex);
 			}
 		}
+		protected async Task CloseAsync(CancellationToken cancellationToken)
+		{
+			if (this.state != FbServiceState.Open)
+			{
+				return;
+			}
 
+			try
+			{
+				await this.svc.DetachAsync(cancellationToken).ConfigureAwait(false);
+				this.svc = null;
+
+				this.state = FbServiceState.Closed;
+			}
+			catch (Exception ex)
+			{
+				throw new FbException(ex.Message, ex);
+			}
+		}
+
+#warning Async
 		protected void StartTask()
 		{
 			if (this.state == FbServiceState.Closed)
@@ -256,17 +284,69 @@ namespace FirebirdSql.Data.Services
 			});
 			return result;
 		}
+		protected async Task<ArrayList> QueryAsync(byte[] items, CancellationToken cancellationToken)
+		{
+			var result = new ArrayList();
+			await this.QueryAsync(items, (truncated, item) =>
+			{
+				var stringItem = item as string;
+				if (stringItem != null)
+				{
+					if (!truncated)
+					{
+						result.Add(stringItem);
+					}
+					else
+					{
+						var lastValue = result[result.Count - 1] as string;
+						result[result.Count - 1] = lastValue + stringItem;
+					}
+					return;
+				}
+
+				var byteArrayItem = item as byte[];
+				if (byteArrayItem != null)
+				{
+					if (!truncated)
+					{
+						result.Add(byteArrayItem);
+					}
+					else
+					{
+						var lastValue = result[result.Count - 1] as byte[];
+						var lastValueLength = lastValue.Length;
+						Array.Resize(ref lastValue, lastValue.Length + byteArrayItem.Length);
+						Array.Copy(byteArrayItem, 0, lastValue, lastValueLength, byteArrayItem.Length);
+					}
+					return;
+				}
+
+				result.Add(item);
+			}, cancellationToken).ConfigureAwait(false);
+			return result;
+		}
 
 		protected void Query(byte[] items, Action<bool, object> resultAction)
 		{
 			this.ProcessQuery(items, resultAction);
 		}
+		protected Task QueryAsync(byte[] items, Action<bool, object> resultAction, CancellationToken cancellationToken)
+		{
+			return this.ProcessQueryAsync(items, resultAction, cancellationToken);
+		}
 
 		protected void ProcessServiceOutput()
 		{
 			string line;
-
 			while ((line = this.GetNextLine()) != null)
+			{
+				WriteServiceOutputChecked(line);
+			}
+		}
+		protected async Task ProcessServiceOutputAsync(CancellationToken cancellationToken)
+		{
+			string line;
+			while ((line = await this.GetNextLineAsync(cancellationToken).ConfigureAwait(false)) != null)
 			{
 				WriteServiceOutputChecked(line);
 			}
@@ -275,6 +355,13 @@ namespace FirebirdSql.Data.Services
 		protected string GetNextLine()
 		{
 			var info = this.Query(new byte[] { IscCodes.isc_info_svc_line });
+			if (info.Count == 0)
+				return null;
+			return info[0] as string;
+		}
+		protected async Task<string> GetNextLineAsync(CancellationToken cancellationToken)
+		{
+			var info = await this.QueryAsync(new byte[] { IscCodes.isc_info_svc_line }, cancellationToken).ConfigureAwait(false);
 			if (info.Count == 0)
 				return null;
 			return info[0] as string;
@@ -394,6 +481,108 @@ namespace FirebirdSql.Data.Services
 				}
 			}
 		}
+		private async Task ProcessQueryAsync(byte[] items, Action<bool, object> queryResponseAction, CancellationToken cancellationToken)
+		{
+			var pos = 0;
+			var truncated = false;
+			var type = default(int);
+
+			var buffer = await this.QueryServiceAsync(items, cancellationToken).ConfigureAwait(false);
+
+			while ((type = buffer[pos++]) != IscCodes.isc_info_end)
+			{
+				if (type == IscCodes.isc_info_truncated)
+				{
+					buffer = await this.QueryServiceAsync(items, cancellationToken).ConfigureAwait(false);
+					pos = 0;
+					truncated = true;
+					continue;
+				}
+
+				switch (type)
+				{
+					case IscCodes.isc_info_svc_version:
+					case IscCodes.isc_info_svc_get_license_mask:
+					case IscCodes.isc_info_svc_capabilities:
+					case IscCodes.isc_info_svc_get_licensed_users:
+						{
+							var length = GetLength(buffer, 2, ref pos);
+							if (length == 0)
+								continue;
+							queryResponseAction(truncated, IscHelper.VaxInteger(buffer, pos, 4));
+							pos += length;
+							truncated = false;
+							break;
+						}
+
+					case IscCodes.isc_info_svc_server_version:
+					case IscCodes.isc_info_svc_implementation:
+					case IscCodes.isc_info_svc_get_env:
+					case IscCodes.isc_info_svc_get_env_lock:
+					case IscCodes.isc_info_svc_get_env_msg:
+					case IscCodes.isc_info_svc_user_dbpath:
+					case IscCodes.isc_info_svc_line:
+						{
+							var length = GetLength(buffer, 2, ref pos);
+							if (length == 0)
+								continue;
+							queryResponseAction(truncated, Encoding.Default.GetString(buffer, pos, length));
+							pos += length;
+							truncated = false;
+							break;
+						}
+					case IscCodes.isc_info_svc_to_eof:
+						{
+							var length = GetLength(buffer, 2, ref pos);
+							if (length == 0)
+								continue;
+							var block = new byte[length];
+							Array.Copy(buffer, pos, block, 0, length);
+							queryResponseAction(truncated, block);
+							pos += length;
+							truncated = false;
+							break;
+						}
+
+					case IscCodes.isc_info_svc_svr_db_info:
+						{
+							var length = GetLength(buffer, 2, ref pos);
+							if (length == 0)
+								continue;
+							queryResponseAction(truncated, ParseDatabasesInfo(buffer, ref pos));
+							truncated = false;
+							break;
+						}
+
+					case IscCodes.isc_info_svc_get_users:
+						{
+							var length = GetLength(buffer, 2, ref pos);
+							if (length == 0)
+								continue;
+							queryResponseAction(truncated, ParseUserData(buffer, ref pos));
+							truncated = false;
+							break;
+						}
+
+					case IscCodes.isc_info_svc_get_config:
+						{
+							var length = GetLength(buffer, 2, ref pos);
+							if (length == 0)
+								continue;
+							queryResponseAction(truncated, ParseServerConfig(buffer, ref pos));
+							truncated = false;
+							break;
+						}
+
+					case IscCodes.isc_info_svc_stdin:
+						{
+							var length = GetLength(buffer, 4, ref pos);
+							queryResponseAction(truncated, length);
+							break;
+						}
+				}
+			}
+		}
 
 		private byte[] QueryService(byte[] items)
 		{
@@ -423,6 +612,54 @@ namespace FirebirdSql.Data.Services
 				{
 					this.Close();
 				}
+			}
+		}
+		private async Task<byte[]> QueryServiceAsync(byte[] items, CancellationToken cancellationToken)
+		{
+			bool shouldClose = false;
+			if (this.state == FbServiceState.Closed)
+			{
+				// Attach to Service Manager
+				await this.OpenAsync(cancellationToken).ConfigureAwait(false);
+				shouldClose = true;
+			}
+
+			if (this.QuerySpb == null)
+			{
+				this.QuerySpb = new ServiceParameterBuffer();
+			}
+
+			try
+			{
+				// Response	buffer
+				byte[] buffer = new byte[this.queryBufferSize];
+				await this.svc.QueryAsync(this.QuerySpb, items.Length, items, buffer.Length, buffer, cancellationToken).ConfigureAwait(false);
+				return buffer;
+			}
+			finally
+			{
+				if (shouldClose)
+				{
+					this.CloseAsync(cancellationToken).Wait();
+				}
+			}
+		}
+
+		private void EnsureOpen()
+		{
+			if (this.state != FbServiceState.Closed)
+			{
+				throw new InvalidOperationException("Service already Open.");
+			}
+
+			if (this.csManager.UserID == null || this.csManager.UserID.Length == 0)
+			{
+				throw new InvalidOperationException("No user name was specified.");
+			}
+
+			if (this.csManager.Password == null || this.csManager.Password.Length == 0)
+			{
+				throw new InvalidOperationException("No user password was specified.");
 			}
 		}
 

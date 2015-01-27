@@ -13,7 +13,7 @@
  *	   language governing rights and limitations under the License.
  * 
  *	Copyright (c) 2002 - 2007 Carlos Guzman Alvarez
- *	Copyright (c) 2007 - 2008 Jiri Cincura (jiri@cincura.net)
+ *	Copyright (c) 2007 - 2008, 2015 Jiri Cincura (jiri@cincura.net)
  *	All Rights Reserved.
  */
 
@@ -26,7 +26,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
-
+using System.Threading.Tasks;
 using FirebirdSql.Data.Common;
 
 namespace FirebirdSql.Data.Client.Managed.Version10
@@ -961,105 +961,189 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 		{
 			this.outputStream.WriteOpaque(buffer);
 		}
+		public Task WriteOpaqueAsync(byte[] buffer, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteOpaqueAsync(buffer, cancellationToken);
+		}
 
 		public void WriteOpaque(byte[] buffer, int length)
 		{
 			this.outputStream.WriteOpaque(buffer, length);
+		}
+		public Task WriteOpaqueAsync(byte[] buffer, int length, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteOpaqueAsync(buffer, length, cancellationToken);
 		}
 
 		public void WriteBuffer(byte[] buffer)
 		{
 			this.outputStream.WriteBuffer(buffer);
 		}
+		public Task WriteBufferAsync(byte[] buffer, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteBufferAsync(buffer, cancellationToken);
+		}
 
 		public void WriteBuffer(byte[] buffer, int length)
 		{
 			this.outputStream.WriteBuffer(buffer, length);
+		}
+		public Task WriteBufferAsync(byte[] buffer, int length, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteBufferAsync(buffer, length, cancellationToken);
 		}
 
 		public void WriteBlobBuffer(byte[] buffer)
 		{
 			this.outputStream.WriteBlobBuffer(buffer);
 		}
+		public Task WriteBlobBufferAsync(byte[] buffer, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteBlobBufferAsync(buffer, cancellationToken);
+		}
 
 		public void WriteTyped(int type, byte[] buffer)
 		{
 			this.outputStream.WriteTyped(type, buffer);
+		}
+		public Task WriteTypedAsync(int type, byte[] buffer, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteTypedAsync(type, buffer, cancellationToken);
 		}
 
 		public void Write(string value)
 		{
 			this.outputStream.Write(value);
 		}
+		public Task WriteAsync(string value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
+		}
 
 		public void Write(short value)
 		{
 			this.outputStream.Write(value);
+		}
+		public Task WriteAsync(short value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
 		}
 
 		public void Write(int value)
 		{
 			this.outputStream.Write(value);
 		}
+		public Task WriteAsync(int value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
+		}
 
 		public void Write(long value)
 		{
 			this.outputStream.Write(value);
+		}
+		public Task WriteAsync(long value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
 		}
 
 		public void Write(float value)
 		{
 			this.outputStream.Write(value);
 		}
+		public Task WriteAsync(float value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
+		}
 
 		public void Write(double value)
 		{
 			this.outputStream.Write(value);
+		}
+		public Task WriteAsync(double value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
 		}
 
 		public void Write(decimal value, int type, int scale)
 		{
 			this.outputStream.Write(value, type, scale);
 		}
+		public Task WriteAsync(decimal value, int type, int scale, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, type, scale, cancellationToken);
+		}
 
 		public void Write(bool value)
 		{
 			this.outputStream.Write(value);
+		}
+		public Task WriteAsync(bool value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
 		}
 
 		public void Write(DateTime value)
 		{
 			this.outputStream.Write(value);
 		}
+		public Task WriteAsync(DateTime value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
+		}
 
 		public void WriteDate(DateTime value)
 		{
 			this.outputStream.Write(value);
+		}
+		public Task WriteDateAsync(DateTime value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
 		}
 
 		public void WriteTime(DateTime value)
 		{
 			this.outputStream.Write(value);
 		}
+		public Task WriteTimeAsync(DateTime value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
+		}
 
 		public void Write(Descriptor value)
 		{
 			this.outputStream.Write(value);
+		}
+		public Task WriteAsync(Descriptor value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
 		}
 
 		public void Write(DbField value)
 		{
 			this.outputStream.Write(value);
 		}
+		public Task WriteAsync(DbField value, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(value, cancellationToken);
+		}
 
 		public void Write(byte[] buffer, int offset, int count)
 		{
 			this.outputStream.Write(buffer, offset, count);
 		}
+		public Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+		{
+			return this.outputStream.WriteAsync(buffer, offset, count, cancellationToken);
+		}
 
 		public void Flush()
 		{
 			this.outputStream.Flush();
+		}
+		public Task FlushAsync(CancellationToken cancellationToken)
+		{
+			return this.outputStream.FlushAsync(cancellationToken);
 		}
 
 		#endregion

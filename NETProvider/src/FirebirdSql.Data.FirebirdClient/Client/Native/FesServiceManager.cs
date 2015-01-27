@@ -13,14 +13,14 @@
  *	   language governing rights and limitations under the License.
  * 
  *	Copyright (c) 2002, 2007 Carlos Guzman Alvarez
+ *	Copyright (c) 2015 Jiri Cincura (jiri@cincura.net)
  *	All Rights Reserved.
- *   
- * Contributors:
- *   Jiri Cincura (jiri@cincura.net)
  */
 
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using FirebirdSql.Data.Common;
 
 namespace FirebirdSql.Data.Client.Native
@@ -90,6 +90,10 @@ namespace FirebirdSql.Data.Client.Native
 			// Update status vector
 			this.handle = svcHandle;
 		}
+		public Task AttachAsync(ServiceParameterBuffer spb, string dataSource, int port, string service, CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
 
 		public void Detach()
 		{
@@ -105,6 +109,10 @@ namespace FirebirdSql.Data.Client.Native
 
 			// Update status vector
 			this.handle = svcHandle;
+		}
+		public Task DetachAsync(CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
 		}
 
 		public void Start(ServiceParameterBuffer spb)
@@ -126,12 +134,7 @@ namespace FirebirdSql.Data.Client.Native
 			this.ParseStatusVector(this.statusVector);
 		}
 
-		public void Query(
-			ServiceParameterBuffer spb,
-			int requestLength,
-			byte[] requestBuffer,
-			int bufferLength,
-			byte[] buffer)
+		public void Query(ServiceParameterBuffer spb, int requestLength, byte[] requestBuffer, int bufferLength, byte[] buffer)
 		{
 			// Clear the status vector
 			this.ClearStatusVector();
@@ -152,6 +155,10 @@ namespace FirebirdSql.Data.Client.Native
 
 			// Parse status	vector
 			this.ParseStatusVector(this.statusVector);
+		}
+		public Task QueryAsync(ServiceParameterBuffer spb, int requestLength, byte[] requestBuffer, int bufferLength, byte[] buffer, CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
 		}
 
 		#endregion

@@ -13,13 +13,13 @@
  *	   language governing rights and limitations under the License.
  * 
  *	Copyright (c) 2002, 2007 Carlos Guzman Alvarez
+ *	Copyright (c) 2015 Jiri Cincura (jiri@cincura.net)
  *	All Rights Reserved.
- *  
- *  Contributors:
- *      Jiri Cincura (jiri@cincura.net)
  */
 
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FirebirdSql.Data.Common
 {
@@ -37,13 +37,16 @@ namespace FirebirdSql.Data.Common
 		#region Methods
 
 		void Attach(ServiceParameterBuffer spb, string dataSource, int port, string service);
+		Task AttachAsync(ServiceParameterBuffer spb, string dataSource, int port, string service, CancellationToken cancellationToken);
 
 		void Detach();
+		Task DetachAsync(CancellationToken cancellationToken);
 
 		void Start(ServiceParameterBuffer spb);
+		//Task StartAsync(ServiceParameterBuffer spb);
 
-		void Query(ServiceParameterBuffer spb, int requestLength, 
-			byte[] requestBuffer, int bufferLength, byte[] buffer);
+		void Query(ServiceParameterBuffer spb, int requestLength, byte[] requestBuffer, int bufferLength, byte[] buffer);
+		Task QueryAsync(ServiceParameterBuffer spb, int requestLength, byte[] requestBuffer, int bufferLength, byte[] buffer, CancellationToken cancellationToken);
 
 		#endregion
 	}
