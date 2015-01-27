@@ -640,7 +640,7 @@ namespace FirebirdSql.Data.Services
 			{
 				if (shouldClose)
 				{
-					this.CloseAsync(cancellationToken).Wait();
+					this.CloseAsync(cancellationToken).Wait_ReplaceMeOnCSharp6();
 				}
 			}
 		}

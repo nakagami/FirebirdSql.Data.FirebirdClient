@@ -12,7 +12,7 @@
  *     express or implied.  See the License for the specific 
  *     language governing rights and limitations under the License.
  * 
- *  Copyright (c) 2011-2013 Jiri Cincura (jiri@cincura.net)
+ *  Copyright (c) 2011-2013, 2015 Jiri Cincura (jiri@cincura.net)
  *  All Rights Reserved.
  */
 
@@ -22,6 +22,7 @@ using System.Globalization;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace FirebirdSql.Data.Common
 {
@@ -67,6 +68,11 @@ namespace FirebirdSql.Data.Common
 		public static int AsInt(this IntPtr ptr)
 		{
 			return (int)ptr.ToInt64();
+		}
+
+		public static void Wait_ReplaceMeOnCSharp6(this Task task)
+		{
+			task.Wait();
 		}
 	}
 }

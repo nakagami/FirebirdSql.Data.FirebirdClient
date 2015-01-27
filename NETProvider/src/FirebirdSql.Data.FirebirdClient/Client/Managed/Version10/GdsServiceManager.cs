@@ -99,7 +99,6 @@ namespace FirebirdSql.Data.Client.Managed.Version10
 			catch (IOException)
 			{
 #warning Async
-				//this.database.DetachAsync(cancellationToken).Wait();
 				this.database.Detach();
 
 				throw new IscException(IscCodes.isc_net_write_err);
