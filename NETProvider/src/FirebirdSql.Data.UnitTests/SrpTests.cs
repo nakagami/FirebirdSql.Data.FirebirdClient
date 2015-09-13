@@ -29,17 +29,8 @@ namespace FirebirdSql.Data.UnitTests
 {
 	[TestFixture(FbServerType.Default)]
 	[TestFixture(FbServerType.Embedded)]
-	public class SrpTests : TestsBase
+	public class SrpTests
 	{
-		#region Constructors
-
-		public SrpTests(FbServerType serverType)
-			: base(serverType)
-		{
-		}
-
-		#endregion
-
 		#region Unit Tests
 
 		[Test]
